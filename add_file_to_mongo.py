@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 
 
-uri = "mongodb+srv://KTAP8:JhpxOn0CFlXE5mty@dsdedata.hv1co.mongodb.net/?retryWrites=true&w=majority&appName=DsdeData"
+uri = "mongodb+srv://<username>:<password>@dsdedata.hv1co.mongodb.net/?retryWrites=true&w=majority&appName=DsdeData"
 # Create a new client and connect to the server
 client = MongoClient(uri, server_api=ServerApi('1'))
 db = client['DsdeData']  # Replace with your database name
