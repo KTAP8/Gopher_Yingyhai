@@ -1,41 +1,78 @@
-import random
+import requests
 import time
-from scholarly import scholarly
 
-# A set of broad keywords that may yield diverse research papers
-broad_keywords = ["science", "technology",
-                  "research", "study", "innovation", "2024"]
 
-# Storage for collected papers
-papers = []
-target_paper_count = 10
+def fetch_crossref_data():
+    url = "https://api.crossref.org/works"
+    papers = []
+    target_paper_count = 1000  # Number of papers you want
+    rows_per_request = 100  # Number of rows to fetch per request
+    offset = 0
 
-while len(papers) < target_paper_count:
-    # Choose a random broad keyword
-    keyword = random.choice(broad_keywords)
+    while len(papers) < target_paper_count:
+        params = {
+            "filter": "from-pub-date:2024-01-01,until-pub-date:2024-12-31",
+            "rows": rows_per_request,
+            "offset": offset
+        }
 
-    # Search for papers with this keyword, focusing on 2024 publications
-    search_query = scholarly.search_pubs(f"{keyword}")
+        response = requests.get(url, params=params)
+        data = response.json()
 
-    try:
-        for _ in range(10):  # Fetch a few papers per keyword to avoid rate-limiting
-            paper = next(search_query)
-            # Check publication year directly from the dictionary
-            if paper.get("pub_year") == "2024":
+        # Get the list of items
+        items = data['message'].get('items', [])
+
+        # If no more items are returned, break the loop
+        if not items:
+            print("No more results available.")
+            break
+
+        # Extract data from the API response
+        for item in items:
+            # Extract authors with both family and given names
+            authors = []
+            for author in item.get("author", []):
+                family = author.get("family")
+                given = author.get("given")
+                if family and given:
+                    authors.append(f"{given} {family}")
+                elif family:
+                    authors.append(family)
+                elif given:
+                    authors.append(given)
+
+            # Extract other fields
+            title = item.get("title", [None])[0]
+            keywords = item.get("subject", [])
+            subject_area = item.get("container-title", [None])[0]
+            published_date = item.get(
+                "published-print", {}).get("date-parts", [[None]])[0]
+
+            # Check if all required fields are non-empty
+            if title and authors and keywords and subject_area and published_date:
+                paper = {
+                    "title": title,
+                    "authors": authors,
+                    "keywords": keywords,
+                    "subject_area": subject_area,
+                    "published_date": published_date
+                }
                 papers.append(paper)
 
-            # Stop if we’ve reached the target
+            # Stop if we've reached the target number of papers
             if len(papers) >= target_paper_count:
                 break
 
-        # Random delay to avoid rate limiting
-        time.sleep(random.uniform(5, 10))
+        # Update offset for pagination
+        offset += rows_per_request
 
-    except StopIteration:
-        # Move to the next keyword if no more results
-        continue
+        # Avoid hitting rate limits
+        time.sleep(1)
 
+    return papers
+
+
+# Fetch and print or save the data
+papers = fetch_crossref_data()
+print(papers)
 print(f"Collected {len(papers)} papers.")
-# Optionally save to a CSV or JSON file if needed
-
-print(papers[0])
