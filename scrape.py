@@ -5,8 +5,8 @@ import time
 def fetch_crossref_data():
     url = "https://api.crossref.org/works"
     papers = []
-    target_paper_count = 3  # Number of papers you want
-    rows_per_request = 10  # Number of rows to fetch per request
+    target_paper_count = 1000  # Number of papers you want
+    rows_per_request = 100  # Number of rows to fetch per request
     offset = 0
 
     while len(papers) < target_paper_count:
