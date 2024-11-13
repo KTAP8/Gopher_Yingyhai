@@ -76,7 +76,3 @@ def fetch_crossref_data():
 papers = fetch_crossref_data()
 print(papers)
 print(f"Collected {len(papers)} papers.")
-
-
-author = {'author': name}
-author = 'adsfhasf'
