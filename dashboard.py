@@ -7,6 +7,7 @@ import altair as alt
 import ast
 import matplotlib.pyplot as plt
 import pydeck as pdk
+from streamlit_agraph import agraph, Node, Edge, Config
 
 # uri = "mongodb+srv://Unun:mJfqV0d3g1KQ6uKP@dsdedata.hv1co.mongodb.net/DsdeData?tls=true&tlsAllowInvalidCertificates=true"
 # # Create a new client and connect to the server
@@ -315,39 +316,60 @@ country_map_agg = affiliation_map_data.groupby(
     ["Country", "Latitude", "Longitude"]
 ).agg({"Publications": "sum", "Authors": "sum"}).reset_index()
 
+col6, col7 = st.columns([0.65, 0.35])
+with col6:
 # Pydeck Interactive Map Visualization
-st.markdown("<h2 style='font-size:16px;'>Affiliation Map (Interactive, Grouped by Country)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-size:16px;'>Affiliation Map (Interactive, Grouped by Country)</h2>", unsafe_allow_html=True)
 
-try:
-    # Create the interactive Pydeck map
-    st.pydeck_chart(
-        pdk.Deck(
-            initial_view_state=pdk.ViewState(
-                latitude=15.8700,  # Start with Thailand in view
-                longitude=100.9925,
-                zoom=1.5,
-                pitch=20,
-            ),
-            layers=[
-                # Scatterplot Layer for Country Aggregated Data
-                pdk.Layer(
-                    "ScatterplotLayer",
-                    data=country_map_agg,
-                    get_position=["Longitude", "Latitude"],
-                    get_radius="Publications * 30",  # Reduce the radius to be appropriate
-                    get_fill_color=[255, 0, 0, 150],  # Red color for markers
-                    pickable=True,
+    try:
+        # Create the interactive Pydeck map
+        st.pydeck_chart(
+            pdk.Deck(
+                initial_view_state=pdk.ViewState(
+                    latitude=15.8700,  # Start with Thailand in view
+                    longitude=100.9925,
+                    zoom=1.5,
+                    pitch=20,
                 ),
-            ],
-            tooltip={
-                "html": "<b>Country:</b> {Country}<br><b>Publications:</b> {Publications}<br><b>Authors:</b> {Authors}",
-                "style": {"backgroundColor": "steelblue", "color": "white"}
-            }
+                layers=[
+                    # Scatterplot Layer for Country Aggregated Data
+                    pdk.Layer(
+                        "ScatterplotLayer",
+                        data=country_map_agg,
+                        get_position=["Longitude", "Latitude"],
+                        get_radius="Publications * 30",  # Reduce the radius to be appropriate
+                        get_fill_color=[255, 0, 0, 150],  # Red color for markers
+                        pickable=True,
+                    ),
+                ],
+                tooltip={
+                    "html": "<b>Country:</b> {Country}<br><b>Publications:</b> {Publications}<br><b>Authors:</b> {Authors}",
+                    "style": {"backgroundColor": "steelblue", "color": "white"}
+                }
+            )
         )
-    )
-except Exception as e:
-    st.error(f"An error occurred while rendering the map: {e}")
+    except Exception as e:
+        st.error(f"An error occurred while rendering the map: {e}")
+with col7:
+    # Display Country Affiliation Details as DataFrame
+    st.markdown("<h2 style='font-size:16px;'>Country Affiliation Details</h2>", unsafe_allow_html=True)
+    st.dataframe(country_map_agg, height=500)
 
-# Display Country Affiliation Details as DataFrame
-st.subheader("Country Affiliation Details")
-st.dataframe(country_map_agg)
+
+## Publication Growth Graph filtered by date range and subject area
+
+filtered_df2['year_month'] = pd.to_datetime(filtered_df2['publishedDate']).dt.to_period('M')
+publication_growth = filtered_df2.groupby('year_month').size().reset_index(name='Publication Count')
+publication_growth['year_month'] = publication_growth['year_month'].dt.to_timestamp()
+st.markdown("<h2 style='font-size:32px;'>Publication Growth Over Time</h2>", unsafe_allow_html=True)
+line_chart_detailed = alt.Chart(publication_growth).mark_line(point=True).encode(
+    x=alt.X('year_month:T', title='Year-Month', axis=alt.Axis(format='%Y-%b')),
+    y=alt.Y('Publication Count:Q', title='Number of Publications'),
+    tooltip=['year_month:T', 'Publication Count']
+).properties(
+    width=800,
+    height=400
+)
+st.altair_chart(line_chart_detailed, use_container_width=True)
+
+## Co Author Network
