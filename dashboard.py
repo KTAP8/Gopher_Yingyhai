@@ -7,7 +7,6 @@ import altair as alt
 import ast
 import matplotlib.pyplot as plt
 import pydeck as pdk
-from streamlit_agraph import agraph, Node, Edge, Config
 
 # uri = "mongodb+srv://Unun:mJfqV0d3g1KQ6uKP@dsdedata.hv1co.mongodb.net/DsdeData?tls=true&tlsAllowInvalidCertificates=true"
 # # Create a new client and connect to the server
@@ -30,7 +29,6 @@ st.set_page_config(layout="wide")
 # Loading the data with caching
 data_load_state = st.text("Loading data...")
 df_papers = load_data()  # Caching this load for efficiency
-data_load_state.text("Done! (using st.cache_data)")
 
 st.title("Gopher Dashboard")
 
@@ -53,16 +51,17 @@ subject_map = {
 }
 topics = list(subject_map.keys())
 topics.sort()
-subject_area = st.sidebar.selectbox("Subject Area:", options=topics)
-subject_area = subject_map[subject_area]
+selected_subject_area = st.sidebar.multiselect("Subject Area:", options=topics, default=["ALL"])
+subject_areas_mapped = [subject_map[area] for area in selected_subject_area]
 ## filtered_df = filter by date range
 ## filtered_df  = filter by date and subject area
 filtered_df = df_papers[(pd.to_datetime(df_papers['publishedDate']) >= start_date) & (pd.to_datetime(df_papers['publishedDate']) <= end_date)]
-if subject_area != "ALL":
-    filtered_df2 = filtered_df[filtered_df['subjectAreaID'].apply(lambda x: subject_area in x)]
+if ("ALL" not in subject_areas_mapped) & (len(subject_areas_mapped) > 0):
+    filtered_df2 = filtered_df[filtered_df['subjectAreaID'].apply(
+        lambda x: any(area in x for area in subject_areas_mapped)
+    )]
 else:
     filtered_df2 = filtered_df
-
 citation_count = filtered_df2['refCount'].dropna()
 citation_count = citation_count.astype(int)
 author_count = filtered_df2['authors'].apply(len)
@@ -316,7 +315,9 @@ country_map_agg = affiliation_map_data.groupby(
     ["Country", "Latitude", "Longitude"]
 ).agg({"Publications": "sum", "Authors": "sum"}).reset_index()
 
-col6, col7 = st.columns([0.65, 0.35])
+country_map_display = country_map_agg[["Country", "Publications", "Authors"]]
+
+col6, col7 = st.columns([0.7, 0.3])
 with col6:
 # Pydeck Interactive Map Visualization
     st.markdown("<h2 style='font-size:16px;'>Affiliation Map (Interactive, Grouped by Country)</h2>", unsafe_allow_html=True)
@@ -343,9 +344,22 @@ with col6:
                     ),
                 ],
                 tooltip={
-                    "html": "<b>Country:</b> {Country}<br><b>Publications:</b> {Publications}<br><b>Authors:</b> {Authors}",
-                    "style": {"backgroundColor": "steelblue", "color": "white"}
+                "html": """
+                <div style="font-family: Arial, sans-serif; font-size: 14px; color: #FFFFFF; background-color: #333333; padding: 10px; border-radius: 8px;">
+                    <b>Country:</b> {Country}<br>
+                    <b>Publications:</b> {Publications}<br>
+                    <b>Authors:</b> {Authors}
+                </div>
+                """,
+                "style": {
+                    "backgroundColor": "#333333",
+                    "color": "white",
+                    "border-radius": "8px",
+                    "padding": "10px",
+                    "font-family": "Arial, sans-serif",
+                    "font-size": "14px"
                 }
+            }
             )
         )
     except Exception as e:
@@ -353,11 +367,11 @@ with col6:
 with col7:
     # Display Country Affiliation Details as DataFrame
     st.markdown("<h2 style='font-size:16px;'>Country Affiliation Details</h2>", unsafe_allow_html=True)
-    st.dataframe(country_map_agg, height=500)
+    st.dataframe(country_map_display, height=500)
 
 
 ## Publication Growth Graph filtered by date range and subject area
-
+filtered_df2['year'] = pd.to_datetime(filtered_df2['publishedDate']).dt.year
 filtered_df2['year_month'] = pd.to_datetime(filtered_df2['publishedDate']).dt.to_period('M')
 publication_growth = filtered_df2.groupby('year_month').size().reset_index(name='Publication Count')
 publication_growth['year_month'] = publication_growth['year_month'].dt.to_timestamp()
@@ -371,5 +385,3 @@ line_chart_detailed = alt.Chart(publication_growth).mark_line(point=True).encode
     height=400
 )
 st.altair_chart(line_chart_detailed, use_container_width=True)
-
-## Co Author Network
