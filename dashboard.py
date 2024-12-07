@@ -371,17 +371,39 @@ with col7:
 
 
 ## Publication Growth Graph filtered by date range and subject area
+# Ensure year_month is in datetime format
 filtered_df2['year'] = pd.to_datetime(filtered_df2['publishedDate']).dt.year
 filtered_df2['year_month'] = pd.to_datetime(filtered_df2['publishedDate']).dt.to_period('M')
-publication_growth = filtered_df2.groupby('year_month').size().reset_index(name='Publication Count')
-publication_growth['year_month'] = publication_growth['year_month'].dt.to_timestamp()
+filtered_df2['year_month'] = filtered_df2['year_month'].dt.to_timestamp()
+
+# Explode subject areas for easier filtering and analysis
+subject_area_for_graph = filtered_df2.explode('subjectAreaID')
+
+# Filter by selected subject areas
+if "ALL" not in subject_areas_mapped:
+    subject_area_for_graph = subject_area_for_graph[
+        subject_area_for_graph['subjectAreaID'].isin(subject_areas_mapped)
+    ]
+
+# Group by year_month and subject area, and calculate publication counts
+topic_publication_growth = (
+    subject_area_for_graph
+    .groupby(['year_month', 'subjectAreaID'])
+    .size()
+    .reset_index(name='Publication Count')
+)
+
+# Plot publication counts for each subject area
 st.markdown("<h2 style='font-size:32px;'>Publication Growth Over Time</h2>", unsafe_allow_html=True)
-line_chart_detailed = alt.Chart(publication_growth).mark_line(point=True).encode(
-    x=alt.X('year_month:T', title='Year-Month', axis=alt.Axis(format='%Y-%b')),
+publication_chart = alt.Chart(topic_publication_growth).mark_line(opacity=0.7).encode(
+    x=alt.X('year_month:T', title='Year-Month', axis=alt.Axis(format='%Y')),
     y=alt.Y('Publication Count:Q', title='Number of Publications'),
-    tooltip=['year_month:T', 'Publication Count']
+    color=alt.Color('subjectAreaID:N', title='Topic Area'),  # Different color for each subject area
+    tooltip=['year_month:T', 'subjectAreaID:N', 'Publication Count:Q']
 ).properties(
     width=800,
     height=400
 )
-st.altair_chart(line_chart_detailed, use_container_width=True)
+
+# Display the chart
+st.altair_chart(publication_chart, use_container_width=True)
