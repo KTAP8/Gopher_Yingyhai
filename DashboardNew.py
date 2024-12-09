@@ -520,8 +520,8 @@ st.altair_chart(publication_chart, use_container_width=True)
 ## Author per year graph
 ## Group by year and count authors per year
 authors_per_year = (
-    filtered_df2.groupby('year')
-    .apply(lambda x: sum(len(authors) for authors in x['authors'] if isinstance(authors, list)))
+    filtered_df2.groupby('year')['authors']
+    .apply(lambda x: len(set(author for authors_list in x if isinstance(authors_list, list) for author in authors_list))) ## Unique authors per year
     .reset_index(name='Author_Count')
 )
 
