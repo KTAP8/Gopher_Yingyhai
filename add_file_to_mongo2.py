@@ -2,6 +2,7 @@ import os
 import json
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
+import pandas as pd
 
 
 uri = "mongodb+srv://KTAP8:JhpxOn0CFlXE5mty@dsdedata.hv1co.mongodb.net/?retryWrites=true&w=majority&appName=DsdeData"
@@ -82,4 +83,57 @@ def add_mongo():
 
 
 # drop_database()
-add_mongo()
+# add_mongo()
+
+def update_author(collection, new_field_name):
+    for document in collection.find():
+        # Get the value from the document or DataFrame
+        values = document.get(new_field_name)
+        if not values:
+            continue  # Skip if the new_field_name is not in the document
+
+        new_value = {}
+        i = 0
+        for value in values:
+            temp = {"name": value, "afid": None}
+            new_value[str(i)] = temp  # Convert the key to a string
+            i += 1
+
+        # Update the document in MongoDB
+        collection.update_one(
+            {"_id": document["_id"]},  # Match by document ID
+            # Update the field with new_value
+            {"$set": {"author": new_value}}
+        )
+
+
+arxiv = db['arxivScraped']
+arxiv2 = db['arxivScrapedCopy']
+# update_author(arxiv, "authors")
+
+# arxiv.update_many({}, {"$unset": {"authors": ""}})
+
+
+def update_ref(collection, new_field_name, original):
+    for document in original.find():
+        # Get the value from the document or DataFrame
+        values = document.get(new_field_name)
+        if not values:
+            continue  # Skip if the new_field_name is not in the document
+        temp = {}
+        ref_count = len(values.keys())
+        for k, v in values.items():
+            inside = [v]
+            temp[k] = inside  # Convert the key to a string
+        new_value = {"ref_count": ref_count, "ref_publishYear_titleText": temp}
+
+        # Update the document in MongoDB
+        collection.update_one(
+            {"_id": document["_id"]},  # Match by document ID
+            # Update the field with new_value
+            {"$set": {"reference": new_value}}
+        )
+        print("setting " + str(document['_id']))
+
+
+update_ref(arxiv, "reference", arxiv2)
