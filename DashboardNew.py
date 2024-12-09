@@ -156,7 +156,10 @@ else:
 
 citation_count = filtered_df2['refCount'].dropna()
 citation_count = citation_count.astype(int)
-author_count = filtered_df2['authors'].apply(len)
+unique_authors = set(author for authors_list in filtered_df2['authors'] if isinstance(authors_list, list) for author in authors_list)
+author_count = len(unique_authors)
+unique_affiliations = set(affiliation for affiliations_list in filtered_df2['affiliates'] if isinstance(affiliations_list, list) for affiliation in affiliations_list)
+unique_affiliations = len(unique_affiliations)
 affiliation_count = filtered_df2['affiliates'].apply(len)
 all_affiliates = df_papers['affiliates'].explode()
 most_frequent_university = all_affiliates.value_counts().idxmax()
@@ -225,7 +228,7 @@ with col1:
 with col2:
     st.markdown(f'''
         <div class="metric-box" style="font-size: 18px">
-            <b>Authors</b><br>{author_count.sum()}
+            <b>Authors</b><br>{author_count}
         </div>
     ''', unsafe_allow_html=True)
 
@@ -239,7 +242,7 @@ with col3:
 with col4:
     st.markdown(f'''
         <div class="metric-box" style="font-size: 18px">
-            <b>Affiliations</b><br>{affiliation_count.sum()}
+            <b>Affiliations</b><br>{unique_affiliations}
         </div>
     ''', unsafe_allow_html=True)
 
