@@ -38,21 +38,21 @@ def load_data(nrows=None):
 
     temp_ref_df = df['reference']
     row1 = temp_ref_df[0]
-    cols = list(eval(row1).keys())
-    l = [list(eval(row).values()) for row in temp_ref_df]
+    cols = list(eval(str(row1)).keys())
+    l = [list(eval(str(row)).values()) for row in temp_ref_df]
     ref_df = pd.DataFrame(l, columns=cols)
     data['refCount'] = ref_df['ref_count']
     # data['refCount'] = data['reference'].apply(lambda x: ast.literal_eval(x)['ref_count'] if pd.notna(x) and 'ref_count' in ast.literal_eval(x) else 0)
 
     cols = ['ID']
-    ids = [[list(eval(row).keys())] for row in df['subjectArea']]
+    ids = [[list(eval(str(row)).keys())] for row in df['subjectArea']]
     id_df = pd.DataFrame(ids, columns=cols)
     data['subjectAreaID'] = id_df['ID']
     # data['subjectAreaID'] = data['subjectArea'].apply(lambda x: list(ast.literal_eval(x).keys()) if pd.notna(x) else [])
     
     names = []
     for row in df['author']:
-        n = [r['name'] for r in list(eval(row).values())]
+        n = [r['name'] for r in list(eval(str(row)).values())]
         names.append([n])
     cols = ['names']
     names_df = pd.DataFrame(names, columns=cols)
@@ -61,7 +61,7 @@ def load_data(nrows=None):
     
     affiliation = []
     for row in df['affiliation']:
-        a = [r['name'] for r in list(eval(row).values())]
+        a = [r['name'] for r in list(eval(str(row)).values())]
         affiliation.append([a])
     cols = ['affiliates']
     affiliates_df = pd.DataFrame(affiliation, columns=cols)
@@ -72,7 +72,7 @@ def load_data(nrows=None):
     
     country = []
     for row in df['affiliation']:
-        c = [r['country'] for r in list(eval(row).values())]
+        c = [r['country'] for r in list(eval(str(row)).values())]
         country.append([c])
     cols = ['country']
     country_df = pd.DataFrame(country, columns=cols)
