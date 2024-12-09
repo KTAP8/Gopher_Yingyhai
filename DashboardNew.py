@@ -737,7 +737,7 @@ st.altair_chart(merged_chart4, use_container_width=True)
 
 col1, col2 = st.columns([0.3,0.7])
 with col1:
-## Top author dataframe
+## *** Top author dataframe ***
     all_authors = [
         author 
         for authors_list in filtered_df2['authors'] 
@@ -758,7 +758,7 @@ with col1:
     st.markdown("<h2 style='font-size:32px;'>Top Authors Contributions</h2>", unsafe_allow_html=True)
     st.write(top_authors_df)
 with col2:
-    # Top Author Activity Chart
+## *** Top Author Activity Chart ***
     author_activity_data = []
 
     for _, row in filtered_df2.iterrows():
