@@ -81,9 +81,9 @@ def load_data(nrows=None):
     
     return data
 
-def load_css(file_name):
-    with open(file_name, 'r') as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+# def load_css(file_name):
+#     with open(file_name, 'r') as f:
+#         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 #================================================================================================================================================================================================#
 
@@ -104,7 +104,7 @@ st.markdown("""
 
 
 # (if used), used style.css for decoration
-load_css('style.css')
+# load_css('style.css')
 
 # Loading the data with caching
 df_papers = load_data()  # Caching this load for efficiency
@@ -502,7 +502,7 @@ topic_publication_growth = (
 )
 
 # Plot publication counts for each subject area
-st.markdown("<h2 style='font-size:32px;'>Publication Growth Over Time</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='font-size:32px;'>Monthly Publications</h2>", unsafe_allow_html=True)
 publication_chart = alt.Chart(topic_publication_growth).mark_line(opacity=0.7).encode(
     x=alt.X('year_month:T', title='Year-Month', axis=alt.Axis(format='%Y')),
     y=alt.Y('Publication Count:Q', title='Number of Publications'),
@@ -515,3 +515,220 @@ publication_chart = alt.Chart(topic_publication_growth).mark_line(opacity=0.7).e
 
 # Display the chart
 st.altair_chart(publication_chart, use_container_width=True)
+
+
+## Author per year graph
+## Group by year and count authors per year
+authors_per_year = (
+    filtered_df2.groupby('year')
+    .apply(lambda x: sum(len(authors) for authors in x['authors'] if isinstance(authors, list)))
+    .reset_index(name='Author_Count')
+)
+
+st.markdown("<h2 style='font-size:32px;'>Number of Authors Per Year</h2>", unsafe_allow_html=True)
+
+chart_type_author = st.selectbox(
+        "Choose Chart Type",
+        options=['Bar Chart', 'Line Chart'],
+        key='author_chart_type'
+    )
+
+if chart_type_author == 'Bar Chart':
+    author_chart = alt.Chart(authors_per_year).mark_bar(opacity=0.8).encode(
+        x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)),  # Use ordinal scale for years
+        y=alt.Y('Author_Count:Q', title='Number of Authors'),
+        tooltip=['year:O', 'Author_Count:Q']  # Tooltip for interactivity
+    ).properties(
+        width=800,
+        height=400
+    )
+
+   
+else: # Line chart
+       author_chart = alt.Chart(authors_per_year).mark_line(point=True).encode(
+        x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)),  # Use ordinal scale for years
+        y=alt.Y('Author_Count:Q', title='Number of Authors'),
+        tooltip=['year:O', 'Author_Count:Q']  # Tooltip for interactivity
+    ).properties(
+        width=800,
+        height=400
+    )
+
+st.altair_chart(author_chart, use_container_width=True)
+
+# Total Citation Count per Year
+citation_count_per_year = (
+    filtered_df2.groupby('year')
+    .apply(lambda x: x['refCount'].dropna().astype(int).sum()) 
+    .reset_index(name='Citation_Count')
+)
+
+# Citation Count per Year Bar Chart
+st.markdown("<h2 style='font-size:32px;'>Citation Count Per Year</h2>", unsafe_allow_html=True)
+
+chart_type_cite = st.selectbox(
+        "Choose Chart Type",
+        options=['Bar Chart', 'Line Chart'],
+        key='cite_chart_type'
+    )
+
+if chart_type_cite == 'Bar Chart':
+    citation_chart = alt.Chart(citation_count_per_year).mark_bar(opacity=0.8).encode(
+        x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)),  # Use ordinal scale for years
+        y=alt.Y('Citation_Count:Q', title='Number of Citations'),
+        tooltip=['year:O', 'Citation_Count:Q'] 
+    ).properties(
+        width=800,
+        height=400
+    )
+else:
+    citation_chart = alt.Chart(citation_count_per_year).mark_line(point=True).encode(
+        x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)),  # Use ordinal scale for years
+        y=alt.Y('Citation_Count:Q', title='Number of Citations'),
+        tooltip=['year:O', 'Citation_Count:Q'] 
+    ).properties(
+        width=800,
+        height=400
+    )
+
+st.altair_chart(citation_chart, use_container_width=True)
+
+# Number of Affiliations Per Year
+affiliations_per_year = (
+    filtered_df2.explode('affiliates')  # Explode affiliations to handle lists
+    .groupby('year')['affiliates']
+    .nunique()  # Count unique affiliations per year
+    .reset_index()
+    .rename(columns={'affiliates': 'Affiliation_Count'})  # Rename for clarity
+)
+
+st.markdown("<h2 style='font-size:32px;'>Number of Affiliations Per Year</h2>", unsafe_allow_html=True)
+
+# Chart Type Selector for Affiliations
+chart_type_affiliation = st.selectbox(
+    "Choose Chart Type for Affiliations:",
+    options=['Bar Chart', 'Line Chart'],
+    key="affiliation_chart"
+)
+
+# Create Affiliation Chart
+if chart_type_affiliation == 'Bar Chart':
+    affiliation_chart = alt.Chart(affiliations_per_year).mark_bar(opacity=0.8).encode(
+        x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)),  # Use ordinal scale for years
+        y=alt.Y('Affiliation_Count:Q', title='Number of Affiliations'),
+        tooltip=['year:O', 'Affiliation_Count:Q']  # Tooltip for interactivity
+    ).properties(
+        width=800,
+        height=400
+    )
+else:  # Line Chart
+    affiliation_chart = alt.Chart(affiliations_per_year).mark_line(point=True, opacity=0.8).encode(
+        x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)),  # Use ordinal scale for years
+        y=alt.Y('Affiliation_Count:Q', title='Number of Affiliations'),
+        tooltip=['year:O', 'Affiliation_Count:Q']  # Tooltip for interactivity
+    ).properties(
+        width=800,
+        height=400
+    )
+
+# Display Affiliation Chart
+st.altair_chart(affiliation_chart, use_container_width=True)
+
+# *** Merge Authors and Citations Per Year ( Additional )***
+# Merge the two datasets on the 'year' column
+merged_data1 = pd.merge(authors_per_year, citation_count_per_year, on='year')
+
+# Select chart type
+st.markdown("<h2 style='font-size:32px;'>Authors and Citations Per Year</h2>", unsafe_allow_html=True)
+
+    # Create a dual-axis line chart
+base1 = alt.Chart(merged_data1).encode(x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)))
+
+authors_line = base1.mark_line(color='blue', point=True).encode(
+    y=alt.Y('Author_Count:Q', title='Number of Authors', axis=alt.Axis(titleColor='blue')),
+    tooltip=['year:O', 'Author_Count:Q']
+)
+
+citations_line = base1.mark_line(color='red', point=True).encode(
+    y=alt.Y('Citation_Count:Q', title='Number of Citations', axis=alt.Axis(titleColor='red')),
+    tooltip=['year:O', 'Citation_Count:Q']
+)
+
+merged_chart1 = alt.layer(authors_line, citations_line).resolve_scale(
+    y='independent'  # Independent Y scales for the two metrics
+).properties(
+    width=800,
+    height=400
+)
+
+# Display the chart
+st.altair_chart(merged_chart1, use_container_width=True)
+
+
+# *** Merge Authors and Publications Per Year ( Additional )***
+# Calculate Publications Per Year
+publications_per_year = (
+    filtered_df2.groupby('year')
+    .size()
+    .reset_index(name='Publication_Count')
+)
+
+# Merge the two datasets on the 'year' column
+merged_data2 = pd.merge(authors_per_year, publications_per_year, on='year')
+
+# Chart Type Selection
+st.markdown("<h2 style='font-size:32px;'>Authors and Publications Per Year</h2>", unsafe_allow_html=True)
+
+# Create the dual-axis chart
+base2 = alt.Chart(merged_data2).encode(x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)))
+
+publications_line = base2.mark_line(color='green', point=True).encode(
+    y=alt.Y('Publication_Count:Q', title='Number of Publications', axis=alt.Axis(titleColor='green')),
+    tooltip=['year:O', 'Publication_Count:Q']
+)
+
+merged_chart2 = alt.layer(authors_line, publications_line).resolve_scale(
+    y='independent'  # Independent Y scales for the two metrics
+).properties(
+    width=800,
+    height=400
+)
+
+st.altair_chart(merged_chart2, use_container_width=True)
+
+# *** Merge Publications and Citations Per Year ( Additional )***
+merged_data3 = pd.merge(publications_per_year, citation_count_per_year, on='year')
+st.markdown("<h2 style='font-size:32px;'>Publications and Citations Per Year</h2>", unsafe_allow_html=True)
+base3 = alt.Chart(merged_data3).encode(x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)))
+merged_chart3 = alt.layer(publications_line, citations_line).resolve_scale(
+    y='independent'  # Independent Y scales for the two metrics
+).properties(
+    width=800,
+    height=400
+)
+
+st.altair_chart(merged_chart3, use_container_width=True)
+
+# ***Merge Publications and Affiliation ( Additional )***
+# Calculate Publications Per Year
+publications_per_year = (
+    filtered_df2.groupby('year')
+    .size()
+    .reset_index(name='Publication_Count')
+)
+merged_data4 = pd.merge(publications_per_year, affiliations_per_year, on='year')
+st.markdown("<h2 style='font-size:32px;'>Publications and Affiliations Per Year</h2>", unsafe_allow_html=True)
+base4 = alt.Chart(merged_data4).encode(x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)))
+affiliation_line = base4.mark_line(color='purple', point=True).encode(
+    y=alt.Y('Affiliation_Count:Q', title='Number of Affiliations', axis=alt.Axis(titleColor='purple')),
+    tooltip=['year:O', 'Affiliation_Count:Q']
+)
+merged_chart4 = alt.layer(publications_line, affiliation_line).resolve_scale(
+    y='independent'  # Independent Y scales for the two metrics
+).properties(
+    width=800,
+    height=400
+)
+
+st.altair_chart(merged_chart4, use_container_width=True)
+
