@@ -11,7 +11,7 @@ import pydeck as pdk
 from streamlit_agraph import agraph, Node, Edge, Config
 import plotly.express as px
 from streamlit_option_menu import option_menu
-
+from collections import Counter
 #================================================================================================================================================================================================#
 
 # Make Dataframe from mongoDB
@@ -735,3 +735,65 @@ merged_chart4 = alt.layer(publications_line, affiliation_line).resolve_scale(
 
 st.altair_chart(merged_chart4, use_container_width=True)
 
+col1, col2 = st.columns([0.3,0.7])
+with col1:
+## Top author dataframe
+    all_authors = [
+        author 
+        for authors_list in filtered_df2['authors'] 
+        if isinstance(authors_list, list) 
+        for author in authors_list
+    ]
+
+    # Count the number of publications for each author
+    author_publication_count = Counter(all_authors)
+
+    # Create a DataFrame for visualization
+    top_authors_df = pd.DataFrame(author_publication_count.items(), columns=['Author', 'Publication_Count'])
+
+    # Sort by Publication_Count in descending order
+    top_authors_df = top_authors_df.sort_values(by='Publication_Count', ascending=False).reset_index(drop=True)
+
+    # Display the top authors DataFrame
+    st.markdown("<h2 style='font-size:32px;'>Top Authors Contributions</h2>", unsafe_allow_html=True)
+    st.write(top_authors_df)
+with col2:
+    # Top Author Activity Chart
+    author_activity_data = []
+
+    for _, row in filtered_df2.iterrows():
+        if isinstance(row['authors'], list):
+            for author in row['authors']:
+                author_activity_data.append({'Author': author, 'Year': row['year']})
+
+    # Create a DataFrame for author activity
+    author_activity_df = pd.DataFrame(author_activity_data)
+
+    # Count publications per year for each author
+    author_publication_yearly = (
+        author_activity_df.groupby(['Year', 'Author'])
+        .size()
+        .reset_index(name='Publication_Count')
+    )
+
+    # Filter the top authors based on total publications
+    top_authors = top_authors_df.head(5)['Author'].tolist()  # Take top 5 authors
+    filtered_author_publication_yearly = author_publication_yearly[
+        author_publication_yearly['Author'].isin(top_authors)
+    ]
+
+    # Line Chart for Author Activity
+    st.markdown("<h2 style='font-size:32px;'>Top Author Activity Over Time</h2>", unsafe_allow_html=True)
+
+    author_activity_chart = alt.Chart(filtered_author_publication_yearly).mark_line(point=True).encode(
+        x=alt.X('Year:O', title='Year', axis=alt.Axis(labelAngle=0)),
+        y=alt.Y('Publication_Count:Q', title='Number of Publications'),
+        color=alt.Color('Author:N', title='Author'),  # Color for each author
+        tooltip=['Year:O', 'Author:N', 'Publication_Count:Q']  # Tooltip for interactivity
+    ).properties(
+        width=800,
+        height=450
+    )
+
+    # Display the chart
+    st.altair_chart(author_activity_chart, use_container_width=True)
