@@ -865,3 +865,67 @@ with col2:
 
     # Display the chart
     st.altair_chart(author_activity_chart, use_container_width=True)
+
+
+
+## Average Reference Per Publication:
+
+# Ensure 'refCount' column is numeric
+filtered_df2['refCount'] = pd.to_numeric(filtered_df2['refCount'], errors='coerce')
+
+# Handle missing or NaN values in 'refCount'
+filtered_df2['refCount'] = filtered_df2['refCount'].fillna(0)
+
+# Calculate average references per subject area
+average_references = (
+    filtered_df2.explode('subjectAreaID')
+    .groupby('subjectAreaID')
+    .agg(Average_Ref=('refCount', 'mean'))
+    .reset_index()
+)
+
+
+
+# Step 1: Data Preparation
+average_references = (
+    filtered_df2.explode('subjectAreaID')
+    .groupby('subjectAreaID')
+    .agg(Average_Ref=('refCount', 'mean'))
+    .reset_index()
+)
+
+# Step 2: Create Visualizations
+st.markdown("<h2 style='font-size:32px;'>Average References Per Publication by Subject Area</h2>", unsafe_allow_html=True)
+# reverse_subject_map = {v: k for k, v in subject_map.items()}
+
+# average_references['Full Name'] = average_references['subjectAreaID'].map(reverse_subject_map)
+
+# Dropdown for chart type selection
+chart_type = st.selectbox("Choose Chart Type", options=['Bar Chart', 'Scatter Plot'])
+
+if chart_type == 'Bar Chart':
+    # Bar Chart
+    bar_chart = alt.Chart(average_references).mark_bar().encode(
+        x=alt.X('subjectAreaID:N', title='Subject Area', sort='-y'),
+        y=alt.Y('Average_Ref:Q', title='Average References Per Publication'),
+        tooltip=['subjectAreaID:N', 'Average_Ref:Q']
+    ).properties(
+        width=800,
+        height=400,
+        title="Average References Per Publication (Bar Chart)"
+    )
+    st.altair_chart(bar_chart, use_container_width=True)
+
+elif chart_type == 'Scatter Plot':
+    # Scatter Plot
+    scatter_plot = alt.Chart(average_references).mark_point(size=100, filled=True).encode(
+        x=alt.X('subjectAreaID:N', title='Subject Area', sort='-y'),
+        y=alt.Y('Average_Ref:Q', title='Average References Per Publication'),
+        tooltip=['subjectAreaID:N', 'Average_Ref:Q']
+    ).properties(
+        width=800,
+        height=400,
+        title="Average References Per Publication (Scatter Plot)"
+    )
+    st.altair_chart(scatter_plot, use_container_width=True)
+
