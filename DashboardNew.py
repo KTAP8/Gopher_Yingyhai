@@ -12,6 +12,7 @@ from streamlit_agraph import agraph, Node, Edge, Config
 import plotly.express as px
 from streamlit_option_menu import option_menu
 from collections import Counter
+from wordcloud import WordCloud
 #================================================================================================================================================================================================#
 
 # Make Dataframe from mongoDB
@@ -249,7 +250,7 @@ with col4:
 with col5:
     st.markdown(f'''
         <div class="metric-box" style="font-size: 18px">
-            <b>Top U</b><br>{most_frequent_university}
+            <b>Top Affiliation</b><br>{most_frequent_university}
         </div>
     ''', unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
@@ -928,4 +929,59 @@ elif chart_type == 'Scatter Plot':
         title="Average References Per Publication (Scatter Plot)"
     )
     st.altair_chart(scatter_plot, use_container_width=True)
+
+
+
+### Top Author Keywords
+
+# Step 1: Extract Keywords from 'authorKeywords' (list of strings)
+def extract_author_keywords_from_string(df, column='authorKeywords', top_n=20):
+    """Extract and count keywords from a column where each entry is a list of strings."""
+    keywords_list = []
+
+    for keywords in df[column].dropna():
+        try:
+            # Convert string representation of list to an actual list
+            keywords_parsed = ast.literal_eval(keywords)
+            if isinstance(keywords_parsed, list):
+                keywords_list.extend(keywords_parsed)
+        except (ValueError, SyntaxError):
+            # Skip rows that cannot be parsed
+            continue
+
+    # Count keyword frequencies
+    keyword_counts = Counter([keyword.strip().lower() for keyword in keywords_list])  # Convert to lowercase for consistency
+    return pd.DataFrame(keyword_counts.most_common(top_n), columns=['Keyword', 'Count'])
+
+# Extract top keywords from the 'authorKeywords' column
+keywords_df = extract_author_keywords_from_string(filtered_df2, column='authorKeywords')
+
+# Step 2: User Selection for Visualization
+st.markdown("<h2 style='font-size:32px;'>Top Author Keywords</h2>", unsafe_allow_html=True)
+chart_type = st.selectbox("Choose Chart Type", options=['Word Cloud', 'Bar Chart'])
+
+if chart_type == 'Word Cloud':
+    # Word Cloud Visualization
+    wordcloud = WordCloud(
+        width=800, height=400, background_color='white'
+    ).generate_from_frequencies(dict(zip(keywords_df['Keyword'], keywords_df['Count'])))
+
+    # Display the word cloud
+    plt.figure(figsize=(10, 5))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+    st.pyplot(plt.gcf())
+
+elif chart_type == 'Bar Chart':
+    # Bar Chart Visualization
+    bar_chart = alt.Chart(keywords_df).mark_bar().encode(
+        x=alt.X('Count:Q', title='Frequency'),
+        y=alt.Y('Keyword:N', title='Keyword', sort='-x'),
+        tooltip=['Keyword:N', 'Count:Q']
+    ).properties(
+        width=800,
+        height=400,
+        title="Top Author Keywords (Bar Chart)"
+    )
+    st.altair_chart(bar_chart, use_container_width=True)
 
