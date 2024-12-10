@@ -902,35 +902,20 @@ st.markdown("<h2 style='font-size:32px;'>Average References Per Publication by S
 # average_references['Full Name'] = average_references['subjectAreaID'].map(reverse_subject_map)
 
 # Dropdown for chart type selection
-chart_type = st.selectbox("Choose Chart Type", options=['Bar Chart', 'Scatter Plot'])
-
-if chart_type == 'Bar Chart':
-    # Bar Chart
-    bar_chart = alt.Chart(average_references).mark_bar().encode(
-        x=alt.X('subjectAreaID:N', title='Subject Area', sort='-y'),
-        y=alt.Y('Average_Ref:Q', title='Average References Per Publication'),
-        tooltip=['subjectAreaID:N', 'Average_Ref:Q']
-    ).properties(
-        width=800,
-        height=400,
-        title="Average References Per Publication (Bar Chart)"
-    )
-    st.altair_chart(bar_chart, use_container_width=True)
-
-elif chart_type == 'Scatter Plot':
-    # Scatter Plot
-    scatter_plot = alt.Chart(average_references).mark_point(size=100, filled=True).encode(
-        x=alt.X('subjectAreaID:N', title='Subject Area', sort='-y'),
-        y=alt.Y('Average_Ref:Q', title='Average References Per Publication'),
-        tooltip=['subjectAreaID:N', 'Average_Ref:Q']
-    ).properties(
-        width=800,
-        height=400,
-        title="Average References Per Publication (Scatter Plot)"
-    )
-    st.altair_chart(scatter_plot, use_container_width=True)
+# chart_type = st.selectbox("Choose Chart Type", options=['Bar Chart'])
 
 
+# Bar Chart
+bar_chart = alt.Chart(average_references).mark_bar().encode(
+    x=alt.X('subjectAreaID:N', title='Subject Area', sort='-y'),
+    y=alt.Y('Average_Ref:Q', title='Average References Per Publication'),
+    tooltip=['subjectAreaID:N', 'Average_Ref:Q']
+).properties(
+    width=800,
+    height=400,
+    title="Average References Per Publication (Bar Chart)"
+)
+st.altair_chart(bar_chart, use_container_width=True)
 
 ### Top Author Keywords
 
