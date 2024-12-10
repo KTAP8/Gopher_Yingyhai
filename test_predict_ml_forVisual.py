@@ -6,7 +6,7 @@ def predict(text):
     mapped = ['Sciences','Health and Medicine','Engineering and Technology','Arts and Social Sciences and Humanities','Mathematics and Multidisciplinary','Economic and Business and Finance']
     torch.cuda.empty_cache()
     # Path to the results folder
-    model_path = "./results/checkpoint-6105"
+    model_path = "./result/checkpoint-final"
 
     # Load the trained model
     model = AutoModelForSequenceClassification.from_pretrained(model_path)
