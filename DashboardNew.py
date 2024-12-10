@@ -12,6 +12,7 @@ from streamlit_agraph import agraph, Node, Edge, Config
 import plotly.express as px
 from streamlit_option_menu import option_menu
 from collections import Counter
+from wordcloud import WordCloud
 #================================================================================================================================================================================================#
 
 # Make Dataframe from mongoDB
@@ -235,7 +236,7 @@ with col2:
 with col3:
     st.markdown(f'''
         <div class="metric-box" style="font-size: 18px">
-            <b>Citation Count</b><br>{citation_count.sum()}
+            <b>Reference</b><br>{citation_count.sum()}
         </div>
     ''', unsafe_allow_html=True)
 
@@ -249,7 +250,7 @@ with col4:
 with col5:
     st.markdown(f'''
         <div class="metric-box" style="font-size: 18px">
-            <b>Top U</b><br>{most_frequent_university}
+            <b>Top Affiliation</b><br>{most_frequent_university}
         </div>
     ''', unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
@@ -413,7 +414,7 @@ def get_affiliation_details(filtered_df):
                 "Latitude": lat,
                 "Longitude": lon,
                 "Publications": 1,  # Assuming 1 publication per row
-                "Authors": len(row['authors'])
+                # "Authors": len(row['authors'])
             })
     
     return pd.DataFrame(affiliation_data)
@@ -424,9 +425,9 @@ affiliation_map_data = get_affiliation_details(filtered_df2)
 # Aggregate Data by Country
 country_map_agg = affiliation_map_data.groupby(
     ["Country", "Latitude", "Longitude"]
-).agg({"Publications": "sum", "Authors": "sum"}).reset_index()
+).agg({"Publications": "sum"}).reset_index()
 
-country_map_display = country_map_agg[["Country", "Publications", "Authors"]]
+country_map_display = country_map_agg[["Country", "Publications"]]
 
 col6, col7 = st.columns([0.7, 0.3])
 with col6:
@@ -459,7 +460,6 @@ with col6:
                 <div style="font-family: Arial, sans-serif; font-size: 14px; color: #FFFFFF; background-color: #333333; padding: 10px; border-radius: 8px;">
                     <b>Country:</b> {Country}<br>
                     <b>Publications:</b> {Publications}<br>
-                    <b>Authors:</b> {Authors}
                 </div>
                 """,
                 "style": {
@@ -866,3 +866,107 @@ with col2:
 
     # Display the chart
     st.altair_chart(author_activity_chart, use_container_width=True)
+
+
+
+## Average Reference Per Publication:
+
+# Ensure 'refCount' column is numeric
+filtered_df2['refCount'] = pd.to_numeric(filtered_df2['refCount'], errors='coerce')
+
+# Handle missing or NaN values in 'refCount'
+filtered_df2['refCount'] = filtered_df2['refCount'].fillna(0)
+
+# Calculate average references per subject area
+average_references = (
+    filtered_df2.explode('subjectAreaID')
+    .groupby('subjectAreaID')
+    .agg(Average_Ref=('refCount', 'mean'))
+    .reset_index()
+)
+
+
+
+# Step 1: Data Preparation
+average_references = (
+    filtered_df2.explode('subjectAreaID')
+    .groupby('subjectAreaID')
+    .agg(Average_Ref=('refCount', 'mean'))
+    .reset_index()
+)
+
+# Step 2: Create Visualizations
+st.markdown("<h2 style='font-size:32px;'>Average References Per Publication by Subject Area</h2>", unsafe_allow_html=True)
+# reverse_subject_map = {v: k for k, v in subject_map.items()}
+
+# average_references['Full Name'] = average_references['subjectAreaID'].map(reverse_subject_map)
+
+# Dropdown for chart type selection
+# chart_type = st.selectbox("Choose Chart Type", options=['Bar Chart'])
+
+
+# Bar Chart
+bar_chart = alt.Chart(average_references).mark_bar().encode(
+    x=alt.X('subjectAreaID:N', title='Subject Area', sort='-y'),
+    y=alt.Y('Average_Ref:Q', title='Average References Per Publication'),
+    tooltip=['subjectAreaID:N', 'Average_Ref:Q']
+).properties(
+    width=800,
+    height=400,
+    title="Average References Per Publication (Bar Chart)"
+)
+st.altair_chart(bar_chart, use_container_width=True)
+
+### Top Author Keywords
+
+# Step 1: Extract Keywords from 'authorKeywords' (list of strings)
+def extract_author_keywords_from_string(df, column='authorKeywords', top_n=20):
+    """Extract and count keywords from a column where each entry is a list of strings."""
+    keywords_list = []
+
+    for keywords in df[column].dropna():
+        try:
+            # Convert string representation of list to an actual list
+            keywords_parsed = ast.literal_eval(keywords)
+            if isinstance(keywords_parsed, list):
+                keywords_list.extend(keywords_parsed)
+        except (ValueError, SyntaxError):
+            # Skip rows that cannot be parsed
+            continue
+
+    # Count keyword frequencies
+    keyword_counts = Counter([keyword.strip().lower() for keyword in keywords_list])  # Convert to lowercase for consistency
+    return pd.DataFrame(keyword_counts.most_common(top_n), columns=['Keyword', 'Count'])
+
+# Extract top keywords from the 'authorKeywords' column
+keywords_df = extract_author_keywords_from_string(filtered_df2, column='authorKeywords')
+
+# Step 2: User Selection for Visualization
+st.markdown("<h2 style='font-size:32px;'>Top Author Keywords</h2>", unsafe_allow_html=True)
+chart_type = st.selectbox("Choose Chart Type", options=['Word Cloud', 'Bar Chart'])
+
+if chart_type == 'Word Cloud':
+    # Word Cloud Visualization
+    wordcloud = WordCloud(
+        width=800, height=400, background_color='white'
+    ).generate_from_frequencies(dict(zip(keywords_df['Keyword'], keywords_df['Count'])))
+
+    # Display the word cloud
+    plt.figure(figsize=(10, 5))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+    st.pyplot(plt.gcf())
+
+elif chart_type == 'Bar Chart':
+    # Bar Chart Visualization
+    bar_chart = alt.Chart(keywords_df).mark_bar().encode(
+        x=alt.X('Count:Q', title='Frequency'),
+        y=alt.Y('Keyword:N', title='Keyword', sort='-x'),
+        tooltip=['Keyword:N', 'Count:Q']
+    ).properties(
+        width=800,
+        height=400,
+        title="Top Author Keywords (Bar Chart)"
+    )
+    st.altair_chart(bar_chart, use_container_width=True)
+
