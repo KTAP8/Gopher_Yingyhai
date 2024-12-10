@@ -109,6 +109,7 @@ def update_author(collection, new_field_name):
 
 arxiv = db['arxivScraped']
 arxiv2 = db['arxivScrapedCopy']
+papers = db['papers']
 # update_author(arxiv, "authors")
 
 # arxiv.update_many({}, {"$unset": {"authors": ""}})
@@ -136,4 +137,12 @@ def update_ref(collection, new_field_name, original):
         print("setting " + str(document['_id']))
 
 
-update_ref(arxiv, "reference", arxiv2)
+#update_ref(arxiv, "reference", arxiv2)
+
+def drop_column(collection, column):
+    collection.update_many({}, {"$unset": {column: ""}})
+    print(f"Column '{column}' has been dropped from the database!")
+
+#drop_column(arxiv2, 'Predictions_area')
+#drop_column(arxiv, 'Predictions_area')
+#drop_column(papers, 'Predictions_area')
