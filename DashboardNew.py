@@ -520,6 +520,75 @@ publication_chart = alt.Chart(topic_publication_growth).mark_line(opacity=0.7).e
 st.altair_chart(publication_chart, use_container_width=True)
 
 
+
+##  Cumulative Publication Growth Over Time ******
+# Explode subject areas for easier filtering and analysis
+subject_area_for_graph = filtered_df2.explode('subjectAreaID')
+
+# Filter by selected subject areas
+if "ALL" not in subject_areas_mapped:
+    subject_area_for_graph = subject_area_for_graph[
+        subject_area_for_graph['subjectAreaID'].isin(subject_areas_mapped)
+    ]
+
+# Group by year_month and subject area, and calculate cumulative publication counts
+topic_publication_growth = (
+    subject_area_for_graph
+    .groupby(['year_month', 'subjectAreaID'])
+    .size()
+    .reset_index(name='Publication Count')
+)
+
+# Calculate cumulative sum for each subject area
+topic_publication_growth['Cumulative Count'] = (
+    topic_publication_growth
+    .groupby('subjectAreaID')['Publication Count']
+    .cumsum()
+)
+
+# Plot cumulative publication counts for each subject area
+st.markdown("<h2 style='font-size:32px;'>Cumulative Publication Growth Over Time</h2>", unsafe_allow_html=True)
+cumulative_publication_chart = alt.Chart(topic_publication_growth).mark_line(point=True, opacity=0.7).encode(
+    x=alt.X('year_month:T', title='Year-Month', axis=alt.Axis(format='%Y-%m')),
+    y=alt.Y('Cumulative Count:Q', title='Cumulative Number of Publications'),
+    color=alt.Color('subjectAreaID:N', title='Topic Area'),  # Different color for each subject area
+    tooltip=['year_month:T', 'subjectAreaID:N', 'Cumulative Count:Q']
+).properties(
+    width=800,
+    height=400
+)
+
+# Display the chart
+st.altair_chart(cumulative_publication_chart, use_container_width=True)
+
+
+
+
+## Subject Area Heatmap 
+# Group by year and subject area to get the count of publications
+heatmap_data = (
+    subject_area_for_graph
+    .groupby(['year', 'subjectAreaID'])
+    .size()
+    .reset_index(name='Publication Count')
+)
+
+# Create the heatmap using Altair
+st.markdown("<h2 style='font-size:32px;'>Subject Area Heatmap by Year</h2>", unsafe_allow_html=True)
+heatmap_chart = alt.Chart(heatmap_data).mark_rect().encode(
+    x=alt.X('year:O', title='Year'),
+    y=alt.Y('subjectAreaID:N', title='Subject Area', sort='-x'),
+    color=alt.Color('Publication Count:Q', title='Publication Count', scale=alt.Scale(scheme='blues')),
+    tooltip=['year:O', 'subjectAreaID:N', 'Publication Count:Q']
+).properties(
+    width=800,
+    height=400
+)
+
+# Display the heatmap
+st.altair_chart(heatmap_chart, use_container_width=True)
+
+
 ## Author per year graph
 ## Group by year and count authors per year
 authors_per_year = (
