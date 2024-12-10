@@ -235,7 +235,7 @@ with col2:
 with col3:
     st.markdown(f'''
         <div class="metric-box" style="font-size: 18px">
-            <b>Citation Count</b><br>{citation_count.sum()}
+            <b>Reference</b><br>{citation_count.sum()}
         </div>
     ''', unsafe_allow_html=True)
 
@@ -413,7 +413,7 @@ def get_affiliation_details(filtered_df):
                 "Latitude": lat,
                 "Longitude": lon,
                 "Publications": 1,  # Assuming 1 publication per row
-                "Authors": len(row['authors'])
+                # "Authors": len(row['authors'])
             })
     
     return pd.DataFrame(affiliation_data)
@@ -424,9 +424,9 @@ affiliation_map_data = get_affiliation_details(filtered_df2)
 # Aggregate Data by Country
 country_map_agg = affiliation_map_data.groupby(
     ["Country", "Latitude", "Longitude"]
-).agg({"Publications": "sum", "Authors": "sum"}).reset_index()
+).agg({"Publications": "sum"}).reset_index()
 
-country_map_display = country_map_agg[["Country", "Publications", "Authors"]]
+country_map_display = country_map_agg[["Country", "Publications"]]
 
 col6, col7 = st.columns([0.7, 0.3])
 with col6:
@@ -459,7 +459,6 @@ with col6:
                 <div style="font-family: Arial, sans-serif; font-size: 14px; color: #FFFFFF; background-color: #333333; padding: 10px; border-radius: 8px;">
                     <b>Country:</b> {Country}<br>
                     <b>Publications:</b> {Publications}<br>
-                    <b>Authors:</b> {Authors}
                 </div>
                 """,
                 "style": {
